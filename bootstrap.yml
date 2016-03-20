@@ -1,0 +1,41 @@
+---
+- hosts: localhost
+  tasks:
+
+    - name: search available ami's 
+      ec2_ami_find:
+#        ami_id: ami-8fcee4e5
+        architecture: x86_64
+        hypervisor: xen
+        name: "amzn-ami-hvm-*"
+        no_result_action: fail
+        owner: amazon 
+        sort: name
+        virtualization_type: hvm
+      register: amiFind
+
+    - name: Additionally filter list of ami's 
+      set_fact:
+        amiSortFilter: "{{ item }}" 
+      with_items: amiFind.results
+      when:
+        - not item | skipped
+        - "'Amazon Linux AMI' in item.description"
+        - "'x86_64 HVM GP2' in item.description"
+        - "'.rc' not in item.description"
+        - item.is_public
+        - item.root_device_type == "ebs"
+
+    - name: Finally grab the most recent ami that matches
+      set_fact:
+        amiId: "{{ amiSortFilter.ami_id }}"
+
+    - debug:
+        var: amiId
+
+# todo:
+#   start instance
+#   generate keypair
+#   dynamically add instance to inventory
+#   clone ansible project repository
+#   clone my repository to configure rest of account and environment
